@@ -1,0 +1,364 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>婚礼请柬</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes heartBeat {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        @keyframes fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        @keyframes explode {
+            0% {
+                transform: translateY(-100px) scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: translateY(50vh) scale(1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(100vh) scale(0.5);
+                opacity: 0;
+            }
+        }
+        .animate-fadeIn { animation: fadeIn 1.5s ease-in-out; }
+        .animate-heartBeat { animation: heartBeat 2s infinite; }
+        .slideshow {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #f5e0dc 0%, #fce7f3 100%);
+            z-index: -1;
+        }
+        .slide {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0;
+            transition: opacity 1s ease-in-out;
+        }
+        .slide.active {
+            opacity: 1;
+        }
+        @media (max-width: 768px) {
+            .slide {
+                background-size: contain;
+            }
+        }
+        .text-shadow { text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3); }
+        .location-link {
+            color: #3b82f6;
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .location-link:hover {
+            color: #1d4ed8;
+        }
+        .countdown {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .countdown-item {
+            background: #fef2f2;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: #be123c;
+            font-weight: bold;
+        }
+        .location-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-left: 8px;
+            transition: transform 0.3s ease;
+        }
+        .location-icon:hover {
+            transform: scale(1.2);
+        }
+        .location-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .ribbon {
+            position: fixed;
+            width: 10px;
+            height: 30px;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            z-index: 0;
+            animation: fall 5s linear infinite;
+            pointer-events: none;
+        }
+        .flower {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            z-index: 0;
+            animation: fall 6s linear infinite;
+            pointer-events: none;
+        }
+        .firecracker {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: #ff4444;
+            border-radius: 50%;
+            z-index: 0;
+            animation: explode 4s linear infinite;
+            pointer-events: none;
+        }
+        .mute-button {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 20;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            padding: 8px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .mute-button:hover {
+            background: rgba(255, 255, 255, 1);
+        }
+        .mute-icon {
+            width: 24px;
+            height: 24px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center font-sans">
+    <div class="slideshow">
+        <div class="slide" style="background-image: url('./images/UH7A4536.jpg');"></div>
+        <div class="slide" style="background-image: url('./images/UH7A4542.jpg');"></div>
+        <div class="slide" style="background-image: url('./images/UH7A4559.jpg');"></div>
+        <div class="slide" style="background-image: url('./images/UH7A4579.jpg');"></div>
+        <div class="slide" style="background-image: url('./images/UH7A4792.jpg');"></div>
+        <div class="slide" style="background-image: url('./images/UH7A4842.jpg');"></div>
+    </div>
+    <div class="bg-white bg-opacity-80 rounded-lg shadow-2xl p-8 max-w-lg w-full text-center animate-fadeIn relative z-10">
+        <h1 class="text-4xl font-bold text-pink-600 mb-4 text-shadow">我们结婚啦！</h1>
+        <div class="flex justify-center items-center mb-6">
+            <h2 class="text-2xl font-semibold text-gray-800 mr-4">郑伟</h2>
+            <span class="text-3xl text-red-500 animate-heartBeat">♥</span>
+            <h2 class="text-2xl font-semibold text-gray-800 ml-4">吴晓婷</h2>
+        </div>
+        <p class="text-xl text-gray-700 mb-4">诚邀您见证我们的幸福时刻</p>
+        <p class="text-lg text-gray-600 mb-4">2025年10月18日 星期六</p>
+        <p class="text-lg text-gray-600 mb-4">下午5:00</p>
+        <p class="text-lg text-gray-600 mb-4">
+            <span class="location-container">
+                地点：
+                <a href="https://j.map.baidu.com/10/tZuK" target="_blank" class="location-link">新纪元大酒店</a>
+                <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+            </span>
+        </p>
+        <p class="text-lg text-gray-600 mb-4">
+            <span class="location-container">
+                住宿：
+                <a href="https://j.map.baidu.com/a6/GM_" target="_blank" class="location-link">格林东方酒店</a>
+                <svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+            </span>
+            <span class="text-sm text-gray-500 block mt-1">（为无法立即返程的宾客提供住宿参考）</span>
+        </p>
+        <div class="countdown">
+            <div class="countdown-item"><span id="days">0</span> 天</div>
+            <div class="countdown-item"><span id="hours">0</span> 时</div>
+            <div class="countdown-item"><span id="minutes">0</span> 分</div>
+            <div class="countdown-item"><span id="seconds">0</span> 秒</div>
+        </div>
+        <p class="text-md text-gray-500 italic">您的到来将为我们的婚礼增添光彩！</p>
+    </div>
+    <button class="mute-button" id="muteButton">
+        <svg id="soundIcon" class="mute-icon" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+        <svg id="muteIcon" class="mute-icon" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+    </button>
+    <audio id="bgMusic" loop autoplay>
+        <source src="./music/爱河.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        let currentSlide = 0;
+
+        function showSlide(index) {
+            slides.forEach((slide, i) => {
+                slide.classList.toggle('active', i === index);
+            });
+        }
+
+        function nextSlide() {
+            currentSlide = (currentSlide + 1) % slides.length;
+            showSlide(currentSlide);
+        }
+
+        // Initialize first slide
+        showSlide(currentSlide);
+
+        // Change slide every 6 seconds
+        setInterval(nextSlide, 6000);
+
+        function createRibbon() {
+            const ribbon = document.createElement('div');
+            ribbon.className = 'ribbon';
+            ribbon.style.left = `${Math.random() * 100}vw`;
+            ribbon.style.animationDuration = `${Math.random() * 3 + 4}s`;
+            ribbon.style.background = Math.random() > 0.5 
+                ? 'linear-gradient(45deg, #ff6b6b, #ff8e53)' 
+                : 'linear-gradient(45deg, #4dabf7, #3bc9db)';
+            document.body.appendChild(ribbon);
+            setTimeout(() => ribbon.remove(), 7000);
+        }
+
+        function createFlower() {
+            const flower = document.createElement('div');
+            flower.className = 'flower';
+            flower.style.left = `${Math.random() * 100}vw`;
+            flower.style.animationDuration = `${Math.random() * 3 + 5}s`;
+            flower.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="#ff69b4" style="width: 100%; height: 100%;">
+                    <path d="M12 2C12 2 6 4 6 10C6 16 12 22 12 22C12 22 18 16 18 10C18 4 12 2 12 2Z" transform="rotate(45 12 12)"/>
+                    <path d="M12 2C12 2 6 4 6 10C6 16 12 22 12 22C12 22 18 16 18 10C18 4 12 2 12 2Z"/>
+                    <circle cx="12" cy="10" r="3" fill="#ffd700"/>
+                </svg>`;
+            document.body.appendChild(flower);
+            setTimeout(() => flower.remove(), 8000);
+        }
+
+        function createFirecracker() {
+            const firecracker = document.createElement('div');
+            firecracker.className = 'firecracker';
+            firecracker.style.left = `${Math.random() * 100}vw`;
+            firecracker.style.animationDuration = `${Math.random() * 2 + 3}s`;
+            document.body.appendChild(firecracker);
+            setTimeout(() => firecracker.remove(), 5000);
+        }
+
+        setInterval(createRibbon, 300);
+        setInterval(createFlower, 500);
+        setInterval(createFirecracker, 400);
+
+        function updateCountdown() {
+            const weddingDate = new Date('2025-10-01T17:00:00+08:00'); // 婚礼时间：2025年10月1日 17:00 北京时间
+            const now = new Date();
+            
+            const timeDiff = weddingDate - now;
+
+            // Initialize to zero if time difference is negative or zero
+            let days = 0, hours = 0, minutes = 0, seconds = 0;
+
+            if (timeDiff > 0) {
+                days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+            }
+
+            document.getElementById('days').textContent = days;
+            document.getElementById('hours').textContent = hours;
+            document.getElementById('minutes').textContent = minutes;
+            document.getElementById('seconds').textContent = seconds;
+        }
+
+        // Initial call to display countdown immediately
+        updateCountdown();
+        // Update every second
+        setInterval(updateCountdown, 1000);
+
+        // Mute button functionality
+        const audio = document.getElementById('bgMusic');
+        const muteButton = document.getElementById('muteButton');
+        const soundIcon = document.getElementById('soundIcon');
+        const muteIcon = document.getElementById('muteIcon');
+        audio.play().catch(err => {
+            console.log("自动播放受限：", err);
+            });
+        muteButton.addEventListener('click', () => {
+            audio.muted = !audio.muted;
+            soundIcon.style.display = audio.muted ? 'none' : 'block';
+            muteIcon.style.display = audio.muted ? 'block' : 'none';
+        });
+    </script>
+</body>
+</html>
